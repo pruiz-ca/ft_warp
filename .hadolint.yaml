@@ -1,0 +1,5 @@
+ignored:
+  - DL3008  # apt packages track the 42Berlin ansible set, not pinned per-version
+  - DL3003  # cd inside the gdb build RUN is intentional
+  - DL4006  # pipes read from trusted release URLs (curl -f)
+  - SC2016  # single-quoted profile.d snippets must stay literal

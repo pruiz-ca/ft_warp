@@ -1,0 +1,9 @@
+.git
+.github
+.vscode
+*.md
+.hadolint.yaml
+.dockerignore
+build.sh
+install.sh
+LICENSE

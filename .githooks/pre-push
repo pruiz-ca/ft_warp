@@ -1,0 +1,20 @@
+#!/bin/sh
+# Fast checks before pushing: lint and wrapper tests. The image build and smoke
+# test are intentionally left to CI, since they compile gdb and Python (~20 min).
+# Enable once with: git config core.hooksPath .githooks
+
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+
+echo "pre-push: shellcheck"
+docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:stable \
+  install.sh .github/tests.sh .github/wrapper-tests.sh
+
+echo "pre-push: hadolint"
+docker run --rm -i -v "$PWD/.hadolint.yaml:/.hadolint.yaml" hadolint/hadolint < Dockerfile
+
+echo "pre-push: wrapper tests"
+sh .github/wrapper-tests.sh
+
+echo "pre-push: ok"

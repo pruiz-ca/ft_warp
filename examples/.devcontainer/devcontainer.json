@@ -1,0 +1,23 @@
+// Copy this file to .devcontainer/devcontainer.json in your 42 project, then run
+// "Dev Containers: Reopen in Container" in VS Code.
+//
+// Use :core for plain C/C++/Python projects, or :full for graphics and Rust.
+// For full IntelliSense on a Makefile project, run "bear -- make" once to
+// generate compile_commands.json.
+{
+  "name": "ft_warp",
+  "image": "ghcr.io/pruiz-ca/ft_warp:core",
+  "runArgs": ["--platform=linux/amd64", "--hostname=ft_warp"],
+  "mounts": ["source=ft_warp_cache,target=/cache,type=volume"],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "llvm-vs-code-extensions.vscode-clangd",
+        "pruiz-ca.42header-next"
+      ],
+      "settings": {
+        "clangd.path": "/usr/bin/clangd"
+      }
+    }
+  }
+}

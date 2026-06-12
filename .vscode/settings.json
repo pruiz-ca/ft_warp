@@ -1,0 +1,11 @@
+{
+    "cSpell.ignorePaths": [
+        "Dockerfile",
+        "install.sh",
+        "README.md",
+        ".github/tests.sh",
+        ".github/wrapper-tests.sh",
+        "examples/.devcontainer/devcontainer.json",
+        ".vscode/"
+    ]
+}

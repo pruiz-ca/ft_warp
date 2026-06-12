@@ -1,0 +1,106 @@
+name: build images
+
+# Builds, tests and publishes the core and full images to ghcr.io.
+# Pushes only on main and schedule; pull requests lint, build and test only.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ${{ github.repository_owner }}/ft_warp
+  FT_WARP_VERSION: "1.0.0"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          additional_files: install.sh
+      - name: Hadolint
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: Dockerfile
+      - name: Wrapper tests
+        run: sh .github/wrapper-tests.sh
+
+  build:
+    needs: lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: core
+            build_args: ""
+          - variant: full
+            build_args: |
+              INSTALL_GRAPHICS=1
+              INSTALL_RUST=1
+              INSTALL_LLVM_EXTRA=1
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build for testing
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: ft_warp:${{ matrix.variant }}
+          build-args: |
+            ${{ matrix.build_args }}
+            FT_WARP_VARIANT=${{ matrix.variant }}
+            FT_WARP_VERSION=${{ env.FT_WARP_VERSION }}
+          cache-from: type=gha,scope=${{ matrix.variant }}
+          cache-to: ${{ github.event_name != 'pull_request' && format('type=gha,mode=max,scope={0}', matrix.variant) || '' }}
+
+      - name: Test image
+        run: ./.github/tests.sh ft_warp:${{ matrix.variant }} ${{ matrix.variant }}
+
+      - name: Compute tags
+        if: github.event_name != 'pull_request'
+        id: tags
+        run: |
+          {
+            echo "list<<EOF"
+            echo "$REGISTRY/$IMAGE:${{ matrix.variant }}"
+            if [ "${{ matrix.variant }}" = "core" ]; then echo "$REGISTRY/$IMAGE:latest"; fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Log in to ghcr.io
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags.outputs.list }}
+          build-args: |
+            ${{ matrix.build_args }}
+            FT_WARP_VARIANT=${{ matrix.variant }}
+            FT_WARP_VERSION=${{ env.FT_WARP_VERSION }}
+          cache-from: type=gha,scope=${{ matrix.variant }}
